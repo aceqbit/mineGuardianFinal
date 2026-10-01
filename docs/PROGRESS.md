@@ -26,3 +26,4 @@
 | P2.5 | Scoring engine, leaderboard, risk bands | PASS (99 backend tests incl. 13 formula tests; 3 Flutter widget tests); live recompute needs Mongo = MANUAL |
 | P2.6 | Rewards (monthly honours, cron, demo history seed) and rewards UI | PASS (103 backend tests, 3 Flutter widget tests); seed:history needs a seeded Mongo = MANUAL |
 | P2.7 | Admin normal mode: SLA watchdog, reliability, compensation, hazard audit, daily PDF reports + UI | PASS (111 backend tests, 6 Flutter widget tests); live cron/PDF upload = MANUAL |
+| P2.8 | Crisis engine: blast-first activation, merge, positions, accounted, resolve + report, public tracking page | PASS (121 backend tests on pure rules); live blast/Twilio dry-run/Mongo = MANUAL (p2-smoke) |
