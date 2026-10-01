@@ -16,6 +16,7 @@ import '../bloc/capture_state.dart';
 import '../data/models/quality_report.dart';
 import '../data/quality_config.dart';
 import 'camera_view.dart';
+import 'checkin_progress_view.dart';
 import 'photo_review_view.dart';
 
 /// Called when the worker submits a passed photo. The check-in flow (P1.6) provides the real implementation.
@@ -86,10 +87,12 @@ class _CaptureViewState extends State<_CaptureView> {
                   _pickGallery();
                 },
                 onSwitchToCamera: () => context.read<CaptureBloc>().add(const RetakeRequested(toCamera: true)),
-                onSubmit: () {
+                onSubmit: () async {
                   final r = s.report;
                   if (r == null) return;
-                  widget.onSubmit?.call(context, r, s.attempt);
+                  final bloc = context.read<CaptureBloc>();
+                  final retake = await Navigator.of(context).push<bool>(MaterialPageRoute(builder: (_) => CheckinProgressView(report: r, attempt: s.attempt)));
+                  if (retake == true) bloc.add(const RetakeRequested(toCamera: true));
                 },
               )
             : _menu(context),

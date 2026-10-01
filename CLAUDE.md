@@ -1,7 +1,7 @@
 # Mine Guardian — CLAUDE.md
 
 Offline-first, role-based mine-safety platform for Indian mines (DGMS context).
-Repo: https://github.com/aceqbit/mineGuardianFinalrs
+Repo: https://github.com/aceqbit/mineGuardianFinal
 Built in 33 ordered steps (S0.1–S0.4, P1.1–P1.12, P2.0–P2.13, I.1–I.4). This file is loaded every session and replaces any "master context prompt".
 
 @docs/CONTRACT.md
