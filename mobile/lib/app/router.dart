@@ -9,6 +9,7 @@ import '../contracts/routes.dart';
 import '../core/auth/session_bloc.dart';
 import '../features/auth/view/login_screen.dart';
 import '../features/auth/view/signup_screen.dart';
+import '../features/sos/view/sos_screen.dart';
 import '../features/splash/view/splash_screen.dart';
 import '../features/worker/view/capture_screen.dart';
 import '../features/worker/view/hazard_report_screen.dart';
@@ -74,7 +75,7 @@ GoRouter buildRouter(SessionBloc session, {List<RouteBase> extraRoutes = const [
           GoRoute(path: Routes.worker, pageBuilder: (c, s) => fadeThroughPage(key: s.pageKey, child: const WorkerHomeScreen())),
           GoRoute(path: Routes.workerCapture, pageBuilder: (c, s) => sharedAxisPage(key: s.pageKey, child: const CaptureScreen())),
           GoRoute(path: Routes.workerHazard, pageBuilder: (c, s) => sharedAxisPage(key: s.pageKey, child: const HazardReportScreen())),
-          GoRoute(path: Routes.workerSos, builder: (c, s) => const ScreenPlaceholder('SOS')),
+          GoRoute(path: Routes.workerSos, pageBuilder: (c, s) => fadeThroughPage(key: s.pageKey, child: SosScreen(evacOnly: s.uri.queryParameters['mode'] == 'evac'))),
           GoRoute(path: Routes.supervisor, builder: (c, s) => const ScreenPlaceholder('Supervisor home')),
           GoRoute(path: Routes.supervisorHazard, builder: (c, s) => const ScreenPlaceholder('Hazard')),
           GoRoute(path: Routes.admin, builder: (c, s) => const ScreenPlaceholder('Admin home')),

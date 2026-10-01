@@ -14,6 +14,9 @@ import '../../../core/sync/sync_engine.dart';
 import '../../../contracts/routes.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/auth/session_bloc.dart';
+import '../../../core/db/cache_repository.dart';
+import '../../../core/db/layout_repository.dart';
+import '../../../core/models/session_user.dart';
 import '../../../core/socket/socket_service.dart';
 import '../bloc/worker_home_bloc.dart';
 import '../bloc/worker_home_event.dart';
@@ -47,10 +50,24 @@ class _WorkerHomeView extends StatefulWidget {
 }
 
 class _WorkerHomeViewState extends State<_WorkerHomeView> with WidgetsBindingObserver {
+  /// Keeps the evacuation map, supervisors and profile on the phone so the SOS screen works with no connection.
+  Future<void> _warmOfflineCache() async {
+    try {
+      final repo = LayoutRepository(api: context.read<ApiClient>(), cache: context.read<CacheRepository>());
+      final user = widget.user as SessionUser;
+      await repo.cacheSupervisors([for (final s in user.zoneSupervisors) s.toJson()]);
+      await repo.cacheProfile({'id': user.id, 'fullName': user.fullName, 'zoneCode': user.zoneCode, 'zoneName': user.zoneName, 'shift': user.shift?.wire});
+      await repo.refresh();
+    } catch (_) {}
+  }
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _warmOfflineCache();
+    });
   }
 
   @override
@@ -61,7 +78,10 @@ class _WorkerHomeViewState extends State<_WorkerHomeView> with WidgetsBindingObs
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed && mounted) context.read<WorkerHomeBloc>().add(const WorkerHomeRefreshed());
+    if (state == AppLifecycleState.resumed && mounted) {
+      context.read<WorkerHomeBloc>().add(const WorkerHomeRefreshed());
+      _warmOfflineCache();
+    }
   }
 
   void _nav(int i) {

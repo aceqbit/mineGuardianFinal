@@ -1,0 +1,197 @@
+import 'dart:async';
+
+import 'package:flutter_bloc/flutter_bloc.dart';
+
+import '../../../contracts/socket_events.dart';
+import '../../../core/api/api_client.dart';
+import '../../../core/db/layout_repository.dart';
+import '../../../core/location/location_service.dart';
+import '../../../core/models/mine_layout.dart';
+import '../../../core/socket/socket_service.dart';
+import '../../../core/sync/outbox_queue.dart';
+import '../../../core/sync/sync_engine.dart';
+import '../data/evac_graph.dart';
+import '../data/sos_repository.dart';
+import 'sos_event.dart';
+import 'sos_state.dart';
+
+/// SOS and evacuation: sends the alert (outbox when offline), streams GPS every 10 s, keeps an on-device evacuation route
+/// and shows the control room's route when one arrives.
+class SosBloc extends Bloc<SosEvent, SosState> {
+  SosBloc({
+    required SosRepository repo,
+    required LocationService location,
+    required SocketService socket,
+    required SyncEngine engine,
+    required OutboxQueue queue,
+    required LayoutRepository layout,
+    required this.userId,
+    required this.zoneCode,
+  })  : _repo = repo,
+        _location = location,
+        _socket = socket,
+        _engine = engine,
+        _queue = queue,
+        _layoutRepo = layout,
+        super(const SosState()) {
+    on<SosOpened>(_onOpened);
+    on<SosLocationChanged>(_onLocation);
+    on<SosQueuedResult>((e, emit) => emit(state.copyWith(status: SosSendStatus.sent, sentAt: DateTime.now(), sosId: e.sosId)));
+    on<SosRoutesReceived>(_onRoutes);
+    on<SosRouteAssigned>((e, emit) => emit(state.copyWith(assignedRank: e.rank)));
+    on<SosGpsTick>(_onGpsTick);
+    on<SosCancelConfirmed>(_onCancel);
+    on<SosRetrySend>((e, emit) => _send(emit));
+    on<SosLayoutLoaded>((e, emit) {
+      emit(state.copyWith(layout: e.layout));
+      _rebuildGraph(emit);
+    });
+  }
+
+  final SosRepository _repo;
+  final LocationService _location;
+  final SocketService _socket;
+  final SyncEngine _engine;
+  final OutboxQueue _queue;
+  final LayoutRepository _layoutRepo;
+  final String userId;
+  final String zoneCode;
+
+  final String clientId = SosRepository.newClientId();
+  final DateTime triggeredAt = DateTime.now().toUtc();
+  final _subs = <StreamSubscription<dynamic>>[];
+  Timer? _gps;
+  EvacGraph? _graph;
+
+  Future<void> _onOpened(SosOpened e, Emitter<SosState> emit) async {
+    emit(state.withEvacOnly(e.evacOnly));
+
+    // Offline-first data: cached layout + cached hazards.
+    final layout = await _layoutRepo.cached();
+    final hazards = (await _layoutRepo.cachedOpenHazards()).map(CachedHazard.fromJson).whereType<CachedHazard>().toList();
+    emit(state.copyWith(layout: layout, hazards: hazards, zoneCode: zoneCode));
+    _rebuildGraph(emit);
+    _layoutRepo.refresh().then((fresh) {
+      if (fresh != null && fresh.version != state.layout?.version && !isClosed) add(SosLayoutLoaded(fresh));
+    });
+
+    // Live control-room routes.
+    _subs.add(_socket.on(SocketEvents.crisisRoutes).listen((env) => add(SosRoutesReceived(env.data))));
+    _subs.add(_socket.on(SocketEvents.crisisRouteAssigned).listen((env) {
+      if ((env.data['workerId'] ?? '').toString() == userId) add(SosRouteAssigned((env.data['rank'] as num?)?.toInt() ?? 1));
+    }));
+
+    // Location: last known first, then refined.
+    final last = await _location.lastKnown();
+    if (last != null) add(SosLocationChanged(last));
+    _subs.add(_location.stream().listen((f) => add(SosLocationChanged(f)), onError: (_) {}));
+    _location.getCurrent().then((f) {
+      if (f != null && !isClosed) add(SosLocationChanged(f));
+    });
+
+    if (!e.evacOnly) {
+      await _send(emit);
+      _gps = Timer.periodic(const Duration(seconds: 10), (_) {
+        if (!isClosed) add(const SosGpsTick());
+      });
+    }
+  }
+
+  void _onLocation(SosLocationChanged e, Emitter<SosState> emit) {
+    emit(state.copyWith(fix: e.fix, positionUnknown: false));
+    _rebuildGraph(emit);
+  }
+
+  /// Offline route from the cached layout, recomputed whenever position / layout / hazards change.
+  void _rebuildGraph(Emitter<SosState> emit) {
+    final layout = state.layout;
+    if (layout == null) return;
+    _graph = EvacGraph.build(layout, hazards: state.hazards);
+    final fix = state.fix;
+    final route = fix != null ? _graph!.routeFrom(GeoPoint(fix.lat, fix.lng)) : _graph!.routeFromZone(zoneCode);
+    emit(state.copyWith(offlineRoute: route, clearOfflineRoute: route == null, positionUnknown: fix == null));
+  }
+
+  Future<void> _send(Emitter<SosState> emit) async {
+    emit(state.copyWith(status: SosSendStatus.sending));
+    final fix = state.fix ?? await _location.lastKnown();
+    try {
+      final res = await _repo.send(clientId: clientId, fix: fix, triggeredAt: triggeredAt);
+      emit(state.copyWith(status: SosSendStatus.sent, sentAt: DateTime.now(), sosId: res.sosId));
+    } on ApiException catch (ex) {
+      final retryable = ex.isNetwork || (ex.statusCode ?? 500) >= 500;
+      if (!retryable) {
+        emit(state.copyWith(status: SosSendStatus.failed));
+        return;
+      }
+      await _queue.enqueueSos(clientId: clientId, payload: SosRepository.payload(fix, triggeredAt));
+      emit(state.copyWith(status: SosSendStatus.savedOffline, retries: state.retries + 1));
+      _subs.add(_engine.itemResult$.where((x) => x.id == clientId).listen((x) {
+        if (x.success) {
+          final s = (x.response?['sos'] as Map?)?.cast<String, dynamic>();
+          add(SosQueuedResult((s?['id'] ?? s?['_id'])?.toString()));
+        }
+      }));
+    } catch (_) {
+      emit(state.copyWith(status: SosSendStatus.failed));
+    }
+  }
+
+  Future<void> _onGpsTick(SosGpsTick e, Emitter<SosState> emit) async {
+    if (state.cancelled) return;
+    _rebuildGraph(emit);
+    if (state.evacOnly) return;
+    final fix = state.fix;
+    if (fix == null) return;
+    final data = {'lat': fix.lat, 'lng': fix.lng, 'accuracyM': fix.accuracyM, 'ts': DateTime.now().toUtc().toIso8601String(), if (state.sosId != null) 'sosId': state.sosId};
+    if (_socket.isConnected) {
+      await _socket.emit(SocketEvents.gpsUpdate, data);
+    } else {
+      await _queue.enqueueGps(clientId: SosRepository.newClientId(), payload: data);
+    }
+    if (state.status == SosSendStatus.savedOffline) emit(state.copyWith(retries: state.retries + 1));
+  }
+
+  void _onRoutes(SosRoutesReceived e, Emitter<SosState> emit) {
+    final feats = (e.collection['geojson'] is Map ? (e.collection['geojson'] as Map)['features'] : e.collection['features']) as List? ?? const [];
+    final mine = <ControlRoute>[];
+    for (final f in feats) {
+      final props = ((f as Map)['properties'] as Map?)?.cast<String, dynamic>() ?? const {};
+      if ((props['workerId'] ?? '').toString() != userId) continue;
+      final coords = ((f['geometry'] as Map)['coordinates'] as List).map((c) => GeoPoint.fromCoord(c as List)).toList();
+      mine.add(ControlRoute(
+        rank: (props['rank'] as num?)?.toInt() ?? 1,
+        points: coords,
+        exitName: props['exitName'] as String? ?? 'exit',
+        etaSec: (props['etaSec'] as num?)?.toDouble() ?? 0,
+        recommended: props['recommended'] == true || (props['rank'] as num?)?.toInt() == 1,
+      ));
+    }
+    mine.sort((a, b) => a.rank.compareTo(b.rank));
+    emit(state.copyWith(controlRoutes: mine));
+  }
+
+  Future<void> _onCancel(SosCancelConfirmed e, Emitter<SosState> emit) async {
+    _gps?.cancel();
+    final key = state.sosId ?? clientId;
+    try {
+      await _repo.cancel(key);
+    } on ApiException catch (ex) {
+      if (ex.isNetwork || (ex.statusCode ?? 500) >= 500) {
+        await _queue.enqueueSosCancel(clientId: SosRepository.newClientId(), sosKey: key);
+      }
+    } catch (_) {
+      await _queue.enqueueSosCancel(clientId: SosRepository.newClientId(), sosKey: key);
+    }
+    emit(state.copyWith(cancelled: true));
+  }
+
+  @override
+  Future<void> close() async {
+    _gps?.cancel();
+    for (final s in _subs) {
+      await s.cancel();
+    }
+    return super.close();
+  }
+}
