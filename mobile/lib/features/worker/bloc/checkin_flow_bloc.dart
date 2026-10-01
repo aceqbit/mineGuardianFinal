@@ -5,6 +5,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../contracts/socket_events.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/socket/socket_service.dart';
+import '../../../core/sync/outbox_queue.dart';
+import '../../../core/sync/sync_engine.dart';
+import '../../../core/location/location_service.dart';
 import '../data/checkin_repository.dart';
 import '../data/models/quality_report.dart';
 import 'checkin_flow_event.dart';
@@ -12,9 +15,11 @@ import 'checkin_flow_state.dart';
 
 /// Drives the StatusTicker: CHECKING -> UPLOADING -> SYNCED -> AI_ANALYZING -> DONE (or FAILED).
 class CheckinFlowBloc extends Bloc<CheckinFlowEvent, CheckinFlowState> {
-  CheckinFlowBloc({required CheckinRepository repo, required SocketService socket})
+  CheckinFlowBloc({required CheckinRepository repo, required SocketService socket, OutboxQueue? queue, SyncEngine? engine})
       : _repo = repo,
         _socket = socket,
+        _queue = queue,
+        _engine = engine,
         super(const CheckinFlowState()) {
     on<CheckinFlowStarted>(_onStart);
     on<CheckinFlowRetry>((e, emit) async {
@@ -36,6 +41,9 @@ class CheckinFlowBloc extends Bloc<CheckinFlowEvent, CheckinFlowState> {
 
   final CheckinRepository _repo;
   final SocketService _socket;
+  final OutboxQueue? _queue;
+  final SyncEngine? _engine;
+  StreamSubscription<dynamic>? _resultSub;
   QualityReport? _report;
   int _attempt = 1;
   String? _clientId;
@@ -61,8 +69,9 @@ class CheckinFlowBloc extends Bloc<CheckinFlowEvent, CheckinFlowState> {
     emit(CheckinFlowState(stage: TickerStage.checking, detail: _gateDetail(r)));
     await Future<void>.delayed(const Duration(milliseconds: 450));
     emit(state.copyWith(stage: TickerStage.uploading, progress: 0, detail: 'Uploading 0%'));
+    LocationFix? fix;
     try {
-      final fix = await _repo.currentLocation();
+      fix = await _repo.currentLocation();
       final res = await _repo.upload(
         report: r,
         attempt: attempt,
@@ -78,10 +87,38 @@ class CheckinFlowBloc extends Bloc<CheckinFlowEvent, CheckinFlowState> {
         emit(state.copyWith(stage: TickerStage.aiAnalyzing, detail: 'AI checking your PPE…'));
       }
     } on ApiException catch (ex) {
+      if (ex.isNetwork && _queue != null) {
+        await _saveOffline(r, attempt, fix, emit);
+        return;
+      }
       emit(state.copyWith(phase: FlowPhase.failed, failure: _failureFor(ex)));
     } catch (_) {
       emit(state.copyWith(phase: FlowPhase.failed, failure: const FlowFailure(stage: TickerStage.uploading, message: 'Upload failed', action: FailAction.retry)));
     }
+  }
+
+  /// No connection: persist to the SQLite outbox (same clientId) and wait for the engine to finish it later.
+  Future<void> _saveOffline(QualityReport r, int attempt, LocationFix? fix, Emitter<CheckinFlowState> emit) async {
+    final id = clientId;
+    await _queue!.enqueueCheckin(clientId: id, photo: r.uploadBytes, payload: {
+      'attempt': attempt,
+      'source': r.source,
+      'capturedAt': r.capturedAt?.toUtc().toIso8601String(),
+      'exifTakenAt': r.exifTakenAt?.toUtc().toIso8601String(),
+      'sha256': r.sha256,
+      'clientQuality': r.metrics.toJson(),
+      if (fix != null) 'lat': fix.lat,
+      if (fix != null) 'lng': fix.lng,
+      if (fix != null) 'accuracyM': fix.accuracyM,
+    });
+    emit(state.copyWith(phase: FlowPhase.queuedOffline, stage: TickerStage.uploading, detail: 'Saved offline — it will send automatically when you are connected'));
+    await _resultSub?.cancel();
+    _resultSub = _engine?.itemResult$.where((x) => x.id == id).listen((x) {
+      if (x.success) {
+        final ci = (x.response?['checkIn'] as Map?)?.cast<String, dynamic>();
+        add(CheckinFlowQueuedSynced((ci?['id'] ?? ci?['_id'] ?? '').toString()));
+      }
+    });
   }
 
   FlowFailure _failureFor(ApiException ex) {
@@ -131,6 +168,7 @@ class CheckinFlowBloc extends Bloc<CheckinFlowEvent, CheckinFlowState> {
 
   @override
   Future<void> close() {
+    _resultSub?.cancel();
     _cancelSubs();
     _slowTimer?.cancel();
     return super.close();

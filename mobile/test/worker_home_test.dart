@@ -11,7 +11,11 @@ import 'package:mine_guardian/core/api/api_client.dart';
 import 'package:mine_guardian/core/auth/auth_repository.dart';
 import 'package:mine_guardian/core/auth/session_bloc.dart';
 import 'package:mine_guardian/core/models/session_user.dart';
+import 'package:mine_guardian/core/db/memory_outbox.dart';
 import 'package:mine_guardian/core/socket/socket_service.dart';
+import 'package:mine_guardian/core/sync/reachability.dart';
+import 'package:mine_guardian/core/sync/sync_engine.dart';
+import 'package:mine_guardian/core/db/outbox_item.dart';
 import 'package:mine_guardian/features/worker/view/worker_home_screen.dart';
 
 class _FakeAuth implements AuthRepository {
@@ -19,6 +23,20 @@ class _FakeAuth implements AuthRepository {
   dynamic noSuchMethod(Invocation i) => null;
   @override
   get currentUser => null;
+}
+
+class _Reach implements Reachability {
+  @override
+  Stream<bool> get connectivity$ => const Stream.empty();
+  @override
+  Future<bool> hasConnection() async => true;
+  @override
+  Future<bool> canReachServer() async => true;
+}
+
+class _NoSend implements OutboxSender {
+  @override
+  Future<Map<String, dynamic>> send(OutboxItem item) async => {};
 }
 
 class _NotFound implements HttpClientAdapter {
@@ -46,7 +64,7 @@ void main() {
       final session = SessionBloc(auth: auth, api: api)
         ..add(const LoggedIn(SessionUser(id: 'u1', role: Role.miner, fullName: 'Dinesh Oraon', employeeId: 'MIN-0105', phoneE164: '+919876500105', zoneId: 'z', zoneCode: 'Z-B', zoneName: 'Zone B — Central Panel', shift: Shift.b)));
       await tester.pumpWidget(MultiRepositoryProvider(
-        providers: [RepositoryProvider<ApiClient>.value(value: api), RepositoryProvider<SocketService>.value(value: socket)],
+        providers: [RepositoryProvider<ApiClient>.value(value: api), RepositoryProvider<SocketService>.value(value: socket), RepositoryProvider<SyncEngine>.value(value: SyncEngine(outbox: MemoryOutboxRepository(), sender: _NoSend(), reachability: _Reach()))],
         child: BlocProvider<SessionBloc>.value(
           value: session,
           child: MaterialApp(theme: ThemeData(useMaterial3: true, extensions: const [MgColors.light]), home: const WorkerHomeScreen()),

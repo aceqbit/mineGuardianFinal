@@ -6,7 +6,13 @@ import 'app/app.dart';
 import 'core/api/api_client.dart';
 import 'core/auth/auth_repository.dart';
 import 'core/auth/session_bloc.dart';
+import 'core/db/cache_repository.dart';
+import 'core/db/local_db.dart';
 import 'core/socket/socket_service.dart';
+import 'core/sync/api_outbox_sender.dart';
+import 'core/sync/outbox_queue.dart';
+import 'core/sync/reachability.dart';
+import 'core/sync/sync_engine.dart';
 import 'firebase_options.dart';
 
 Future<void> main() async {
@@ -22,16 +28,22 @@ Future<void> main() async {
   final api = ApiClient(tokenProvider: ({bool forceRefresh = false}) => auth.idToken(forceRefresh: forceRefresh));
   final socket = SocketService(tokenProvider: ({bool forceRefresh = false}) => auth.idToken(forceRefresh: forceRefresh));
   final session = SessionBloc(auth: auth, api: api);
+  final db = await LocalDb.open();
+  final engine = SyncEngine(outbox: db.outbox, sender: ApiOutboxSender(api: api, socket: socket), reachability: ConnectivityReachability(api: api), onRemoved: OutboxQueue.deleteFile);
+  final queue = OutboxQueue(outbox: db.outbox, engine: engine);
 
   runApp(MultiRepositoryProvider(
     providers: [
       RepositoryProvider<AuthRepository>.value(value: auth),
       RepositoryProvider<ApiClient>.value(value: api),
       RepositoryProvider<SocketService>.value(value: socket),
+      RepositoryProvider<CacheRepository>.value(value: db.cache),
+      RepositoryProvider<SyncEngine>.value(value: engine),
+      RepositoryProvider<OutboxQueue>.value(value: queue),
     ],
     child: BlocProvider<SessionBloc>.value(
       value: session,
-      child: MineGuardianApp(session: session, socket: socket),
+      child: MineGuardianApp(session: session, socket: socket, engine: engine),
     ),
   ));
 }

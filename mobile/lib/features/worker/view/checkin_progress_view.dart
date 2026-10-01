@@ -8,6 +8,8 @@ import '../../../app/ui/mg_button.dart';
 import '../../../contracts/routes.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/socket/socket_service.dart';
+import '../../../core/sync/outbox_queue.dart';
+import '../../../core/sync/sync_engine.dart';
 import '../bloc/checkin_flow_bloc.dart';
 import '../bloc/checkin_flow_event.dart';
 import '../bloc/checkin_flow_state.dart';
@@ -24,7 +26,7 @@ class CheckinProgressView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (ctx) => CheckinFlowBloc(repo: CheckinRepository(api: ctx.read<ApiClient>()), socket: ctx.read<SocketService>())..add(CheckinFlowStarted(report: report, attempt: attempt)),
+      create: (ctx) => CheckinFlowBloc(repo: CheckinRepository(api: ctx.read<ApiClient>()), socket: ctx.read<SocketService>(), queue: ctx.read<OutboxQueue>(), engine: ctx.read<SyncEngine>())..add(CheckinFlowStarted(report: report, attempt: attempt)),
       child: _View(startedAt: DateTime.now()),
     );
   }

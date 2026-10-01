@@ -12,3 +12,4 @@
 | P1.4 | Worker Home | PASS (analyze, 3-width test with neutral stats) |
 | P1.5 | Capture + quality gate | PASS (analyze, gate/framing unit tests); camera, ML Kit and blur calibration MANUAL |
 | P1.6 | Check-in upload API + StatusTicker | PASS (backend 26 tests, ticker 3-width test); phone upload MANUAL |
+| P1.7 | Offline outbox + sync engine + indicator | PASS (8 engine tests, 53 total); airplane-mode test MANUAL |
