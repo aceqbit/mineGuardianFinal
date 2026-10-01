@@ -7,10 +7,22 @@ import { audit } from '../../core/audit.js';
 import { ROLE } from '../../contracts/enums.js';
 import { User } from '../../models/User.js';
 import { Zone } from '../../models/Zone.js';
+import { signupSchema } from './auth.schemas.js';
+import { signup } from './auth.service.js';
 
 export const router = Router();
 
 const TEN_MIN = 10 * 60 * 1000;
+
+router.post(
+  '/signup',
+  authenticate({ allowUnregistered: true }),
+  validate({ body: signupSchema }),
+  asyncHandler(async (req, res) => {
+    const user = await signup(req);
+    res.status(201).json({ user: user.toPublic() });
+  }),
+);
 
 router.get(
   '/me',
