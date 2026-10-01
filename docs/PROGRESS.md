@@ -13,3 +13,4 @@
 | P1.5 | Capture + quality gate | PASS (analyze, gate/framing unit tests); camera, ML Kit and blur calibration MANUAL |
 | P1.6 | Check-in upload API + StatusTicker | PASS (backend 26 tests, ticker 3-width test); phone upload MANUAL |
 | P1.7 | Offline outbox + sync engine + indicator | PASS (8 engine tests, 53 total); airplane-mode test MANUAL |
+| P1.8 | Report Safety Hazard | PASS (backend 31 tests, 3-width render); phone/offline report MANUAL |
