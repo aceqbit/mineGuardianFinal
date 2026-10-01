@@ -4,12 +4,13 @@ import 'package:go_router/go_router.dart';
 import '../contracts/routes.dart';
 import '../features/compliance_review/view/review_screen.dart';
 import '../features/leaderboard/view/leaderboard_screen.dart';
+import '../features/rewards/view/rewards_screen.dart';
 
 /// Phase 2 routes. Placeholders until their steps land; each step replaces its own entry.
 List<RouteBase> phase2Routes() => [
       GoRoute(path: Routes.supervisorReview, builder: (c, s) => ReviewScreen(checkInId: s.pathParameters['checkInId']!)),
       GoRoute(path: Routes.leaderboard, builder: (c, s) => const LeaderboardScreen()),
-      GoRoute(path: Routes.rewards, builder: (c, s) => const Phase2Placeholder()),
+      GoRoute(path: Routes.rewards, builder: (c, s) => const RewardsScreen()),
       GoRoute(path: Routes.adminNormal, builder: (c, s) => const Phase2Placeholder()),
       GoRoute(path: Routes.adminReports, builder: (c, s) => const Phase2Placeholder()),
       GoRoute(path: Routes.adminCrisis, builder: (c, s) => const Phase2Placeholder()),

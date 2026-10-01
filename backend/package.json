@@ -9,6 +9,7 @@
     "start": "node src/server.js",
     "seed": "node seed/seed.js",
     "seed:reset": "node seed/seed.js --reset",
+    "seed:history": "node seed/demo_history.js",
     "layout": "node seed/build_layout.js",
     "test": "node --test"
   },

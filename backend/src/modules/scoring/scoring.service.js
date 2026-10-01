@@ -98,10 +98,11 @@ export async function recomputeAll(now = new Date()) {
   return n;
 }
 
-async function latestSnapshots(filter = {}) {
+/** Latest snapshot per active miner; `asOfDay` limits to snapshots on or before that IST day (used for month-end rankings). */
+export async function latestSnapshots(filter = {}, asOfDay = null) {
   const miners = await User.find({ role: 'miner', status: 'active', ...filter });
   const snaps = await ScoreSnapshot.aggregate([
-    { $match: { userId: { $in: miners.map((m) => m._id) } } },
+    { $match: { userId: { $in: miners.map((m) => m._id) }, ...(asOfDay ? { day: { $lte: asOfDay } } : {}) } },
     { $sort: { day: -1 } },
     { $group: { _id: '$userId', doc: { $first: '$$ROOT' } } },
   ]);
@@ -112,8 +113,8 @@ async function latestSnapshots(filter = {}) {
 const row = (m, s) => ({ userId: String(m._id), name: m.fullName, employeeId: m.employeeId, zoneId: String(m.zoneId), score: s?.score ?? 0, streak: s?.streak ?? 0, xp: s?.xp ?? 0 });
 
 /** Public leaderboard: top N, never includes risk bands (miners must not see them). */
-export async function leaderboard({ limit = 50 } = {}) {
-  const rows = (await latestSnapshots()).map(({ miner, snap }) => row(miner, snap));
+export async function leaderboard({ limit = 50, zoneId } = {}) {
+  const rows = (await latestSnapshots(zoneId ? { zoneId } : {})).map(({ miner, snap }) => row(miner, snap));
   return rankRows(rows).slice(0, limit);
 }
 

@@ -11,7 +11,12 @@ import { leaderboard, myStanding, recomputeAll, recomputeWorker, supervisorBoard
 
 const router = Router();
 
-router.get('/leaderboard', authenticate(), asyncHandler(async (_req, res) => res.json(await leaderboard())));
+router.get(
+  '/leaderboard',
+  authenticate(),
+  validate({ query: z.object({ period: z.enum(['month', 'all']).optional(), zoneId: objectId.optional() }) }),
+  asyncHandler(async (req, res) => res.json(await leaderboard({ zoneId: req.query.zoneId }))),
+);
 router.get('/leaderboard/me', authenticate(), requireRole('miner'), asyncHandler(async (req, res) => res.json(await myStanding(req.user))));
 router.get('/leaderboard/supervisors', authenticate(), requireRole('supervisor', 'admin'), asyncHandler(async (_req, res) => res.json(await supervisorBoard())));
 router.get(

@@ -24,3 +24,4 @@
 | P2.3 | Wire the analyser into the system | PASS (76 tests incl. job queue); live pipeline run needs Mongo/Firebase = MANUAL |
 | P2.4 | Compliance review API, decision rules, PDF, review card UI | PASS (86 backend tests, 9 Flutter tests at 360/768/1280); live PDF/photo needs Firebase = MANUAL |
 | P2.5 | Scoring engine, leaderboard, risk bands | PASS (99 backend tests incl. 13 formula tests; 3 Flutter widget tests); live recompute needs Mongo = MANUAL |
+| P2.6 | Rewards (monthly honours, cron, demo history seed) and rewards UI | PASS (103 backend tests, 3 Flutter widget tests); seed:history needs a seeded Mongo = MANUAL |
