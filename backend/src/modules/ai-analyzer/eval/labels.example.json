@@ -1,0 +1,6 @@
+[
+  { "file": "c01.jpg", "mode": "PPE_COMPLIANCE", "zone": "Z-B", "expected": { "verdict": "COMPLIANT", "items": { "HELMET": "PRESENT", "REFLECTIVE_VEST": "PRESENT", "SAFETY_BOOTS": "PRESENT", "GLOVES": "PRESENT" } } },
+  { "file": "m01.jpg", "mode": "PPE_COMPLIANCE", "zone": "Z-B", "expected": { "verdict": "NON_COMPLIANT", "items": { "HELMET": "ABSENT", "REFLECTIVE_VEST": "PRESENT", "SAFETY_BOOTS": "PRESENT", "GLOVES": "PRESENT" } } },
+  { "file": "b01.jpg", "mode": "PPE_COMPLIANCE", "zone": "Z-B", "expected": { "verdict": "NEEDS_MANUAL_REVIEW" } },
+  { "file": "h01.jpg", "mode": "HAZARD_SCENE", "category": "ELECTRICAL", "expected": { "severity": "MEDIUM", "emergency": false } }
+]

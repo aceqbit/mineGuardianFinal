@@ -60,3 +60,10 @@ export function aiConfig(env = process.env) {
     onnxClasses: (env.ONNX_CLASSES || '').split(',').map((s) => s.trim()).filter(Boolean),
   });
 }
+
+/** The seeded zones' required PPE (used by the CLI and the evaluation harness, which run without MongoDB). */
+export const ZONE_REQUIRED_PPE = Object.freeze({
+  'Z-A': ['HELMET', 'CAP_LAMP', 'REFLECTIVE_VEST', 'SAFETY_BOOTS', 'GLOVES', 'SELF_RESCUER'],
+  'Z-B': ['HELMET', 'REFLECTIVE_VEST', 'SAFETY_BOOTS', 'GLOVES'],
+  'Z-C': ['HELMET', 'CAP_LAMP', 'REFLECTIVE_VEST', 'SAFETY_BOOTS', 'GLOVES', 'SELF_RESCUER', 'DUST_MASK', 'EAR_PROTECTION', 'EYE_PROTECTION'],
+});

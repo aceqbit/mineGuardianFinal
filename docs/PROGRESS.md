@@ -20,3 +20,4 @@
 | P1.12 | Simulators + p1-smoke + audit | PASS (35 backend tests incl. simulator route builder); p1-smoke needs live server + Firebase = MANUAL |
 | P2.0 | Prep (eval photos + labels) | MANUAL: 30 eval photos + labels.json are yours to make |
 | P2.1 | AI analyser core | PASS (22 tests: guardrails, failure policy, mock, schemas); real-key checks MANUAL |
+| P2.2 | Tools, tool loop, fusion, eval | PASS (72 backend tests: fusion rules a-h, YOLO parse/ONNX decode, metrics); eval run + real keys MANUAL |
