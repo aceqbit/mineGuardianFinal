@@ -1,0 +1,128 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
+
+import '../../../app/app_images.dart';
+import '../../../app/responsive.dart';
+import '../../../app/theme/tokens.dart';
+import '../../../app/ui/app_scaffold.dart';
+import '../../../app/ui/empty_state.dart';
+import '../../../app/ui/media_tile.dart';
+import '../../../app/ui/section_header.dart';
+import '../../../contracts/routes.dart';
+import '../../../core/api/api_client.dart';
+import '../../../core/auth/session_bloc.dart';
+import '../../../core/socket/socket_service.dart';
+import '../bloc/worker_home_bloc.dart';
+import '../bloc/worker_home_event.dart';
+import '../bloc/worker_home_state.dart';
+import '../data/worker_repository.dart';
+import '../widgets/recent_checkins.dart';
+import '../widgets/shift_header.dart';
+import '../widgets/sos_button.dart';
+import '../widgets/stats_strip.dart';
+
+class WorkerHomeScreen extends StatelessWidget {
+  const WorkerHomeScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final session = context.watch<SessionBloc>().state;
+    if (session is! SessionAuthenticated) return const SizedBox.shrink();
+    return BlocProvider(
+      create: (ctx) => WorkerHomeBloc(repo: WorkerRepository(api: ctx.read<ApiClient>()), socket: ctx.read<SocketService>(), userId: session.user.id)..add(const WorkerHomeStarted()),
+      child: _WorkerHomeView(user: session.user),
+    );
+  }
+}
+
+class _WorkerHomeView extends StatefulWidget {
+  const _WorkerHomeView({required this.user});
+  final dynamic user;
+
+  @override
+  State<_WorkerHomeView> createState() => _WorkerHomeViewState();
+}
+
+class _WorkerHomeViewState extends State<_WorkerHomeView> with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && mounted) context.read<WorkerHomeBloc>().add(const WorkerHomeRefreshed());
+  }
+
+  void _nav(int i) {
+    switch (i) {
+      case 1:
+        context.go(Routes.workerHazard);
+      case 2:
+        context.go(Routes.leaderboard);
+      case 3:
+        context.go(Routes.rewards);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final user = widget.user;
+    final socket = context.read<SocketService>();
+    final compact = context.isCompact;
+    final sos = SosButton(size: compact ? 72 : 52, onTriggered: () => context.go(Routes.workerSos));
+    return AppScaffold(
+      title: 'Worker home',
+      selectedIndex: 0,
+      onSelect: _nav,
+      destinations: const [
+        NavDest(label: 'Home', icon: Icons.home),
+        NavDest(label: 'Report Hazard', icon: Icons.warning_amber),
+        NavDest(label: 'Leaderboard', icon: Icons.leaderboard),
+        NavDest(label: 'Rewards', icon: Icons.emoji_events),
+      ],
+      actions: [if (!compact) Padding(padding: const EdgeInsets.only(right: Space.md), child: sos)],
+      floatingActionButton: compact ? sos : null,
+      body: BlocBuilder<WorkerHomeBloc, WorkerHomeState>(builder: (context, s) {
+        if (s.status == WorkerHomeStatus.failure) {
+          return EmptyState(icon: Icons.cloud_off, title: 'Could not load', message: 'Pull down to try again', actionLabel: 'Retry', onAction: () => context.read<WorkerHomeBloc>().add(const WorkerHomeStarted()));
+        }
+        return RefreshIndicator(
+          onRefresh: () async => context.read<WorkerHomeBloc>().add(const WorkerHomeRefreshed()),
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.only(top: Space.lg, bottom: 96),
+            children: [
+              ContentWidth(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                  ShiftHeader(user: user, connected: socket.connection$),
+                  const SizedBox(height: Space.x2),
+                  StatsStrip(stats: s.stats, flash: s.statsFlash),
+                  const SizedBox(height: Space.x2),
+                  const SectionHeader(title: 'Actions'),
+                  AdaptiveGrid(children: [
+                    MediaTile(imageUrl: AppImages.capture, icon: Icons.photo_camera, title: 'Capture Shift Photo', subtitle: s.captureSubtitle, onTap: () => context.go(Routes.workerCapture)),
+                    MediaTile(imageUrl: AppImages.hazard, icon: Icons.warning_amber, title: 'Report Hazard', subtitle: 'Photo, category, location', onTap: () => context.go(Routes.workerHazard)),
+                    MediaTile(imageUrl: AppImages.leaderboard, icon: Icons.leaderboard, title: 'Leaderboard', subtitle: 'Live safety ranking', onTap: () => context.go(Routes.leaderboard)),
+                    MediaTile(imageUrl: AppImages.rewards, icon: Icons.emoji_events, title: 'Rewards', subtitle: 'Honours and badges', onTap: () => context.go(Routes.rewards)),
+                  ]),
+                  const SizedBox(height: Space.x2),
+                  const SectionHeader(title: 'Recent check-ins'),
+                  RecentCheckins(items: s.checkins, loading: s.status == WorkerHomeStatus.loading, flashIds: s.flashIds),
+                ]),
+              ),
+            ],
+          ),
+        );
+      }),
+    );
+  }
+}

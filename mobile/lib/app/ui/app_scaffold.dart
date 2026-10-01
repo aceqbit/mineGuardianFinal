@@ -100,7 +100,7 @@ class AppScaffold extends StatelessWidget {
                 child: Row(children: [
                   Icon(Icons.shield, color: c.amber500),
                   const SizedBox(width: Space.md),
-                  Text('Mine Guardian', style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white)),
+                  Expanded(child: Text('Mine Guardian', maxLines: 1, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white))),
                 ]),
               ),
               ?leadingHeader,

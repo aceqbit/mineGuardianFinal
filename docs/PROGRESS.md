@@ -9,3 +9,4 @@
 | P1.1 | Auth/users/zones API | PASS (tests) |
 | P1.2 | Login screen | PASS (analyze, tests, 3-width render); real-phone login MANUAL |
 | P1.3 | Sign-up flow | PASS (analyze, 3-width render test); end-to-end create MANUAL |
+| P1.4 | Worker Home | PASS (analyze, 3-width test with neutral stats) |

@@ -58,7 +58,7 @@ class _UiGalleryScreenState extends State<UiGalleryScreen> {
             ]),
             const SizedBox(height: Space.x2),
             const SectionHeader(title: 'Stats', number: 2),
-            AdaptiveGrid(aspectRatio: 1.6, children: const [
+            AdaptiveGrid(fixedTileHeight: 104, children: const [
               StatCard(label: 'Safety score', value: 742, icon: Icons.shield),
               StatCard(label: 'Streak', value: 6, icon: Icons.local_fire_department, suffix: ' d'),
               StatCard(label: 'XP', value: 1200, icon: Icons.bolt),
