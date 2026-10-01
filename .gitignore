@@ -1,0 +1,10 @@
+node_modules/
+.env
+backend/.env
+backend/secrets/
+*.local.json
+.dart_tool/
+build/
+*.log
+.DS_Store
+backend/src/modules/ai-analyzer/eval/report-*.json
