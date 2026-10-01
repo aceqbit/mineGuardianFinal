@@ -8,3 +8,4 @@
 | S0.4 | Design system and UI kit | PASS (analyze 0, tests, images 12/12); visual check MANUAL |
 | P1.1 | Auth/users/zones API | PASS (tests) |
 | P1.2 | Login screen | PASS (analyze, tests, 3-width render); real-phone login MANUAL |
+| P1.3 | Sign-up flow | PASS (analyze, 3-width render test); end-to-end create MANUAL |

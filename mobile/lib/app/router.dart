@@ -8,6 +8,7 @@ import '../contracts/enums.dart';
 import '../contracts/routes.dart';
 import '../core/auth/session_bloc.dart';
 import '../features/auth/view/login_screen.dart';
+import '../features/auth/view/signup_screen.dart';
 import '../features/splash/view/splash_screen.dart';
 import 'ui/page_transitions.dart';
 import '../phase2/phase2_routes.dart';
@@ -66,7 +67,7 @@ GoRouter buildRouter(SessionBloc session, {List<RouteBase> extraRoutes = const [
         routes: [
           GoRoute(path: Routes.splash, builder: (c, s) => const SplashScreen()),
           GoRoute(path: Routes.login, pageBuilder: (c, s) => fadeThroughPage(key: s.pageKey, child: const LoginScreen())),
-          GoRoute(path: Routes.signup, builder: (c, s) => const ScreenPlaceholder('Sign up')),
+          GoRoute(path: Routes.signup, pageBuilder: (c, s) => sharedAxisPage(key: s.pageKey, child: const SignupScreen())),
           GoRoute(path: Routes.worker, builder: (c, s) => const ScreenPlaceholder('Worker home')),
           GoRoute(path: Routes.workerCapture, builder: (c, s) => const ScreenPlaceholder('Capture')),
           GoRoute(path: Routes.workerHazard, builder: (c, s) => const ScreenPlaceholder('Report hazard')),
