@@ -1,6 +1,7 @@
 // ignore_for_file: prefer_initializing_formals
 import 'dart:async';
 
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:rxdart/rxdart.dart';
 import 'package:socket_io_client/socket_io_client.dart' as io;
 
@@ -84,6 +85,13 @@ class SocketService {
     });
     _bind(event);
     return c.stream;
+  }
+
+  /// Pushes a server event into the stream as if it arrived over the socket. Tests only.
+  @visibleForTesting
+  void inject(String event, Map<String, dynamic> data, {String? id}) {
+    final env = SocketEnvelope(id: id ?? 't-${DateTime.now().microsecondsSinceEpoch}-$event', ts: DateTime.now().toUtc(), data: data);
+    if (_remember(env.id)) _controllers[event]?.add(env);
   }
 
   /// Emit a client event wrapped in the envelope; completes with the ack payload (or null on timeout).

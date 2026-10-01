@@ -11,6 +11,9 @@ import '../features/auth/view/login_screen.dart';
 import '../features/auth/view/signup_screen.dart';
 import '../features/sos/view/sos_screen.dart';
 import '../features/splash/view/splash_screen.dart';
+import '../features/supervisor_home/data/models/feed_item.dart';
+import '../features/supervisor_home/view/hazard_detail_screen.dart';
+import '../features/supervisor_home/view/supervisor_home_screen.dart';
 import '../features/worker/view/capture_screen.dart';
 import '../features/worker/view/hazard_report_screen.dart';
 import '../features/worker/view/worker_home_screen.dart';
@@ -76,8 +79,8 @@ GoRouter buildRouter(SessionBloc session, {List<RouteBase> extraRoutes = const [
           GoRoute(path: Routes.workerCapture, pageBuilder: (c, s) => sharedAxisPage(key: s.pageKey, child: const CaptureScreen())),
           GoRoute(path: Routes.workerHazard, pageBuilder: (c, s) => sharedAxisPage(key: s.pageKey, child: const HazardReportScreen())),
           GoRoute(path: Routes.workerSos, pageBuilder: (c, s) => fadeThroughPage(key: s.pageKey, child: SosScreen(evacOnly: s.uri.queryParameters['mode'] == 'evac'))),
-          GoRoute(path: Routes.supervisor, builder: (c, s) => const ScreenPlaceholder('Supervisor home')),
-          GoRoute(path: Routes.supervisorHazard, builder: (c, s) => const ScreenPlaceholder('Hazard')),
+          GoRoute(path: Routes.supervisor, pageBuilder: (c, s) => fadeThroughPage(key: s.pageKey, child: const SupervisorHomeScreen())),
+          GoRoute(path: Routes.supervisorHazard, pageBuilder: (c, s) => sharedAxisPage(key: s.pageKey, child: HazardDetailScreen(hazardId: s.pathParameters['hazardId']!, initial: s.extra is HazardFeed ? s.extra as HazardFeed : null))),
           GoRoute(path: Routes.admin, builder: (c, s) => const ScreenPlaceholder('Admin home')),
           if (kDebugMode) GoRoute(path: Routes.devUi, builder: (c, s) => const UiGalleryScreen()),
           ...phase2Routes(),

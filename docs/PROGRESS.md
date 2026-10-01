@@ -15,3 +15,4 @@
 | P1.7 | Offline outbox + sync engine + indicator | PASS (8 engine tests, 53 total); airplane-mode test MANUAL |
 | P1.8 | Report Safety Hazard | PASS (backend 31 tests, 3-width render); phone/offline report MANUAL |
 | P1.9 | SOS + panic screen + offline evac map | PASS (backend 33, 6 evac-graph tests, 4 SOS screen tests incl. offline queue); real-phone SOS/SMS/offline MANUAL |
+| P1.10 | Supervisor Home live feed | PASS (backend 34, 6 feed-bloc tests incl. live merge/optimistic rollback) |
