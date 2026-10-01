@@ -9,6 +9,7 @@ import '../contracts/routes.dart';
 import '../core/auth/session_bloc.dart';
 import '../features/splash/view/splash_screen.dart';
 import '../phase2/phase2_routes.dart';
+import '../features/dev_gallery/view/ui_gallery_screen.dart';
 import 'global_overlays.dart';
 
 /// Makes GoRouter re-run `redirect` whenever the session changes.
@@ -71,6 +72,7 @@ GoRouter buildRouter(SessionBloc session, {List<RouteBase> extraRoutes = const [
           GoRoute(path: Routes.supervisor, builder: (c, s) => const ScreenPlaceholder('Supervisor home')),
           GoRoute(path: Routes.supervisorHazard, builder: (c, s) => const ScreenPlaceholder('Hazard')),
           GoRoute(path: Routes.admin, builder: (c, s) => const ScreenPlaceholder('Admin home')),
+          if (kDebugMode) GoRoute(path: Routes.devUi, builder: (c, s) => const UiGalleryScreen()),
           ...phase2Routes(),
           ...extraRoutes,
         ],

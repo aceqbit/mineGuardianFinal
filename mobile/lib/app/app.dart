@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../core/auth/session_bloc.dart';
 import '../core/socket/socket_service.dart';
 import 'router.dart';
+import 'theme/app_theme.dart';
 
 class MineGuardianApp extends StatefulWidget {
   const MineGuardianApp({super.key, required this.session, required this.socket, this.extraRoutes = const []});
@@ -38,7 +39,9 @@ class _MineGuardianAppState extends State<MineGuardianApp> {
       child: MaterialApp.router(
         title: 'Mine Guardian',
         debugShowCheckedModeBanner: false,
-        theme: ThemeData(useMaterial3: true, colorSchemeSeed: const Color(0xFFF59E0B)),
+        theme: AppTheme.light(),
+        darkTheme: AppTheme.dark(),
+        themeMode: ThemeMode.system,
         routerConfig: _router,
       ),
     );
