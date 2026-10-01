@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import '../contracts/enums.dart';
 import '../contracts/routes.dart';
 import '../core/auth/session_bloc.dart';
+import '../features/admin_home/view/admin_home_screen.dart';
 import '../features/auth/view/login_screen.dart';
 import '../features/auth/view/signup_screen.dart';
 import '../features/sos/view/sos_screen.dart';
@@ -81,7 +82,7 @@ GoRouter buildRouter(SessionBloc session, {List<RouteBase> extraRoutes = const [
           GoRoute(path: Routes.workerSos, pageBuilder: (c, s) => fadeThroughPage(key: s.pageKey, child: SosScreen(evacOnly: s.uri.queryParameters['mode'] == 'evac'))),
           GoRoute(path: Routes.supervisor, pageBuilder: (c, s) => fadeThroughPage(key: s.pageKey, child: const SupervisorHomeScreen())),
           GoRoute(path: Routes.supervisorHazard, pageBuilder: (c, s) => sharedAxisPage(key: s.pageKey, child: HazardDetailScreen(hazardId: s.pathParameters['hazardId']!, initial: s.extra is HazardFeed ? s.extra as HazardFeed : null))),
-          GoRoute(path: Routes.admin, builder: (c, s) => const ScreenPlaceholder('Admin home')),
+          GoRoute(path: Routes.admin, pageBuilder: (c, s) => fadeThroughPage(key: s.pageKey, child: const AdminHomeScreen())),
           if (kDebugMode) GoRoute(path: Routes.devUi, builder: (c, s) => const UiGalleryScreen()),
           ...phase2Routes(),
           ...extraRoutes,
