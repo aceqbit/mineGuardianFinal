@@ -21,3 +21,4 @@
 | P2.0 | Prep (eval photos + labels) | MANUAL: 30 eval photos + labels.json are yours to make |
 | P2.1 | AI analyser core | PASS (22 tests: guardrails, failure policy, mock, schemas); real-key checks MANUAL |
 | P2.2 | Tools, tool loop, fusion, eval | PASS (72 backend tests: fusion rules a-h, YOLO parse/ONNX decode, metrics); eval run + real keys MANUAL |
+| P2.3 | Wire the analyser into the system | PASS (76 tests incl. job queue); live pipeline run needs Mongo/Firebase = MANUAL |
