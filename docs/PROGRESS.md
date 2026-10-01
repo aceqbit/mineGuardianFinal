@@ -17,3 +17,4 @@
 | P1.9 | SOS + panic screen + offline evac map | PASS (backend 33, 6 evac-graph tests, 4 SOS screen tests incl. offline queue); real-phone SOS/SMS/offline MANUAL |
 | P1.10 | Supervisor Home live feed | PASS (backend 34, 6 feed-bloc tests incl. live merge/optimistic rollback) |
 | P1.11 | Admin Home | PASS (3-width render x crisis on/off); backend overview/supervisors added in P1.10 commit |
+| P1.12 | Simulators + p1-smoke + audit | PASS (35 backend tests incl. simulator route builder); p1-smoke needs live server + Firebase = MANUAL |
