@@ -1,0 +1,80 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+
+import '../contracts/enums.dart';
+import '../contracts/routes.dart';
+import '../core/auth/session_bloc.dart';
+import '../features/splash/view/splash_screen.dart';
+import '../phase2/phase2_routes.dart';
+import 'global_overlays.dart';
+
+/// Makes GoRouter re-run `redirect` whenever the session changes.
+class GoRouterRefreshStream extends ChangeNotifier {
+  GoRouterRefreshStream(Stream<dynamic> stream) {
+    _sub = stream.listen((_) => notifyListeners());
+  }
+  late final StreamSubscription<dynamic> _sub;
+
+  @override
+  void dispose() {
+    _sub.cancel();
+    super.dispose();
+  }
+}
+
+class ScreenPlaceholder extends StatelessWidget {
+  const ScreenPlaceholder(this.title, {super.key});
+  final String title;
+
+  @override
+  Widget build(BuildContext context) => Scaffold(appBar: AppBar(title: Text(title)), body: Center(child: Text(title)));
+}
+
+String? sessionRedirect(SessionState session, String loc) {
+  if (loc.startsWith('/dev/')) return kDebugMode ? null : Routes.login;
+  if (session is SessionUnknown) return loc == Routes.splash ? null : Routes.splash;
+  if (session is SessionUnauthenticated) {
+    return (loc == Routes.login || loc == Routes.signup) ? null : Routes.login;
+  }
+  final user = (session as SessionAuthenticated).user;
+  final home = Routes.homeFor(user.role.wire);
+  if (loc == Routes.splash || loc == Routes.login || loc == Routes.signup) return home;
+  bool under(String p) => loc == p || loc.startsWith('$p/');
+  if (under('/worker') && user.role != Role.miner) return home;
+  if (under('/supervisor') && user.role != Role.supervisor) return home;
+  if (under('/admin') && user.role != Role.admin) return home;
+  if (loc == Routes.crisisView && user.role == Role.miner) return home;
+  return null;
+}
+
+/// Screens are plugged in by their steps; `extraRoutes` lets features register themselves.
+GoRouter buildRouter(SessionBloc session, {List<RouteBase> extraRoutes = const []}) {
+  return GoRouter(
+    initialLocation: Routes.splash,
+    refreshListenable: GoRouterRefreshStream(session.stream),
+    redirect: (context, state) => sessionRedirect(session.state, state.uri.path),
+    errorBuilder: (context, state) => const SplashScreen(),
+    routes: [
+      ShellRoute(
+        builder: (context, state, child) => GlobalOverlays(child: child),
+        routes: [
+          GoRoute(path: Routes.splash, builder: (c, s) => const SplashScreen()),
+          GoRoute(path: Routes.login, builder: (c, s) => const ScreenPlaceholder('Login')),
+          GoRoute(path: Routes.signup, builder: (c, s) => const ScreenPlaceholder('Sign up')),
+          GoRoute(path: Routes.worker, builder: (c, s) => const ScreenPlaceholder('Worker home')),
+          GoRoute(path: Routes.workerCapture, builder: (c, s) => const ScreenPlaceholder('Capture')),
+          GoRoute(path: Routes.workerHazard, builder: (c, s) => const ScreenPlaceholder('Report hazard')),
+          GoRoute(path: Routes.workerSos, builder: (c, s) => const ScreenPlaceholder('SOS')),
+          GoRoute(path: Routes.supervisor, builder: (c, s) => const ScreenPlaceholder('Supervisor home')),
+          GoRoute(path: Routes.supervisorHazard, builder: (c, s) => const ScreenPlaceholder('Hazard')),
+          GoRoute(path: Routes.admin, builder: (c, s) => const ScreenPlaceholder('Admin home')),
+          ...phase2Routes(),
+          ...extraRoutes,
+        ],
+      ),
+    ],
+  );
+}

@@ -1,0 +1,46 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
+
+import '../core/auth/session_bloc.dart';
+import '../core/socket/socket_service.dart';
+import 'router.dart';
+
+class MineGuardianApp extends StatefulWidget {
+  const MineGuardianApp({super.key, required this.session, required this.socket, this.extraRoutes = const []});
+  final SessionBloc session;
+  final SocketService socket;
+  final List<RouteBase> extraRoutes;
+
+  @override
+  State<MineGuardianApp> createState() => _MineGuardianAppState();
+}
+
+class _MineGuardianAppState extends State<MineGuardianApp> {
+  late final GoRouter _router = buildRouter(widget.session, extraRoutes: widget.extraRoutes);
+
+  @override
+  void dispose() {
+    _router.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocListener<SessionBloc, SessionState>(
+      listener: (context, state) {
+        if (state is SessionAuthenticated) {
+          widget.socket.connect();
+        } else {
+          widget.socket.disconnect();
+        }
+      },
+      child: MaterialApp.router(
+        title: 'Mine Guardian',
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(useMaterial3: true, colorSchemeSeed: const Color(0xFFF59E0B)),
+        routerConfig: _router,
+      ),
+    );
+  }
+}
