@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../contracts/routes.dart';
+import '../features/compliance_review/view/review_screen.dart';
 
 /// Phase 2 routes. Placeholders until their steps land; each step replaces its own entry.
 List<RouteBase> phase2Routes() => [
-      GoRoute(path: Routes.supervisorReview, builder: (c, s) => const Phase2Placeholder()),
+      GoRoute(path: Routes.supervisorReview, builder: (c, s) => ReviewScreen(checkInId: s.pathParameters['checkInId']!)),
       GoRoute(path: Routes.leaderboard, builder: (c, s) => const Phase2Placeholder()),
       GoRoute(path: Routes.rewards, builder: (c, s) => const Phase2Placeholder()),
       GoRoute(path: Routes.adminNormal, builder: (c, s) => const Phase2Placeholder()),

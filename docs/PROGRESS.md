@@ -22,3 +22,4 @@
 | P2.1 | AI analyser core | PASS (22 tests: guardrails, failure policy, mock, schemas); real-key checks MANUAL |
 | P2.2 | Tools, tool loop, fusion, eval | PASS (72 backend tests: fusion rules a-h, YOLO parse/ONNX decode, metrics); eval run + real keys MANUAL |
 | P2.3 | Wire the analyser into the system | PASS (76 tests incl. job queue); live pipeline run needs Mongo/Firebase = MANUAL |
+| P2.4 | Compliance review API, decision rules, PDF, review card UI | PASS (86 backend tests, 9 Flutter tests at 360/768/1280); live PDF/photo needs Firebase = MANUAL |
