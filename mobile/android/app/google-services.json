@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "612008981838",
+    "project_id": "mine-guardian-b3b81",
+    "storage_bucket": "mine-guardian-b3b81.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:612008981838:android:1158b867272a5726cc1a1f",
+        "android_client_info": {
+          "package_name": "com.mineguardian.mine_guardian"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAJS0DJ8ylpdkGBVATccJY_uUfBHFxSbLw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

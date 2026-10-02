@@ -16,7 +16,7 @@ class StatsStrip extends StatelessWidget {
     final c = MgColors.of(context);
     final s = stats;
     final grid = AdaptiveGrid(
-      fixedTileHeight: 104,
+      fixedTileHeight: 128,
       maxColumns: 4,
       minTileWidth: 140,
       children: [
