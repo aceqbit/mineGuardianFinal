@@ -9,7 +9,7 @@ let app;
 export function getFirebaseApp() {
   if (app) return app;
   const credPath = path.resolve(process.cwd(), env.GOOGLE_APPLICATION_CREDENTIALS);
-  const opts = { projectId: env.FIREBASE_PROJECT_ID, storageBucket: env.FIREBASE_STORAGE_BUCKET };
+  const opts = { projectId: env.FIREBASE_PROJECT_ID, ...(env.FIREBASE_STORAGE_BUCKET ? { storageBucket: env.FIREBASE_STORAGE_BUCKET } : {}) };
   if (fs.existsSync(credPath)) {
     opts.credential = admin.credential.cert(JSON.parse(fs.readFileSync(credPath, 'utf8')));
   } else {

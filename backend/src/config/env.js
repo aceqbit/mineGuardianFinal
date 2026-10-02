@@ -5,14 +5,17 @@ const bool = (def) =>
   z.preprocess((v) => (v === undefined || v === '' ? def : String(v).toLowerCase() === 'true'), z.boolean());
 const optStr = z.string().optional().default('');
 
-const schema = z.object({
+const schema = z
+  .object({
   PORT: z.coerce.number().int().default(4000),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   CORS_ORIGINS: z.string().default('*'),
   PUBLIC_BASE_URL: z.string().default('http://localhost:4000'),
   MONGODB_URI: z.string().min(1, 'required'),
   FIREBASE_PROJECT_ID: z.string().min(1, 'required'),
-  FIREBASE_STORAGE_BUCKET: z.string().min(1, 'required'),
+  STORAGE_DRIVER: z.enum(['firebase', 'local']).default('firebase'),
+  LOCAL_STORAGE_DIR: z.string().default('./storage-data'),
+  FIREBASE_STORAGE_BUCKET: optStr,
   GOOGLE_APPLICATION_CREDENTIALS: z.string().min(1, 'required').default('./secrets/firebase-sa.json'),
   DEV_AUTH_BYPASS: bool(false),
   DEMO_FAST_MODE: bool(false),
@@ -36,7 +39,10 @@ const schema = z.object({
   TWILIO_DRY_RUN: bool(true),
   SLA_MINUTES: z.coerce.number().default(30),
   SLA_REMINDER_BASE_MINUTES: z.coerce.number().default(5),
-});
+})
+  .superRefine((v, ctx) => {
+    if (v.STORAGE_DRIVER === 'firebase' && !v.FIREBASE_STORAGE_BUCKET) ctx.addIssue({ code: 'custom', path: ['FIREBASE_STORAGE_BUCKET'], message: 'required (or set STORAGE_DRIVER=local)' });
+  });
 
 export function parseEnv(source = process.env, { exit = true } = {}) {
   const r = schema.safeParse(source);
