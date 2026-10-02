@@ -201,9 +201,9 @@ export async function recompute(reason = 'manual') {
   c.routesComputedAt = new Date();
   for (const p of S.positions.values()) S.routedAt.set(p.userId, { lat: p.lat, lng: p.lng });
   logger.info(`crisis routes recomputed (${reason}) in ${Date.now() - t0} ms, ${result.collection.features.length} features`);
-  emitTo(staffRooms(c.zoneIds.map(String)), 'crisis:routes', { crisisId: String(c._id), routes: result.collection });
+  emitTo(staffRooms(c.zoneIds.map(String)), 'crisis:routes', { crisisId: String(c._id), geojson: result.collection });
   for (const [workerId, features] of Object.entries(result.byWorker)) {
-    emitTo([`user:${workerId}`], 'crisis:routes', { crisisId: String(c._id), routes: { type: 'FeatureCollection', features } });
+    emitTo([`user:${workerId}`], 'crisis:routes', { crisisId: String(c._id), geojson: { type: 'FeatureCollection', features } });
   }
   return result;
 }
@@ -267,7 +267,8 @@ export async function activeForClient(user) {
   const base = { active: true, crisis: publicView(c) };
   if (user.role === 'miner') return base;
   if (user.role === 'supervisor' && !c.zoneIds.map(String).includes(String(user.zoneId))) return base;
-  return { ...base, crisis: { ...publicView(c), shareToken: c.shareToken, timeline: [...(c.timeline ?? []), ...S.timeline], blockedEdgeIds: c.blockedEdgeIds ?? [] }, roster: await roster(c), positions: [...S.positions.values()], routes: S.routes };
+  const zoneCodes = (await Zone.find({ _id: { $in: c.zoneIds } })).map((z) => z.code);
+  return { ...base, crisis: { ...publicView(c), zoneCodes, shareToken: c.shareToken, timeline: [...(c.timeline ?? []), ...S.timeline], blockedEdgeIds: c.blockedEdgeIds ?? [] }, roster: await roster(c), positions: [...S.positions.values()], routes: S.routes };
 }
 
 export async function setBlockedEdge(edgeId, blocked) {

@@ -35,7 +35,7 @@ class CrisisStatusCard extends StatelessWidget {
             if (button != null) ...[const SizedBox(height: Space.md), button],
           ]);
         }
-        return Row(children: [dot, const SizedBox(width: Space.md), Expanded(child: text), if (button != null) button]);
+        return Row(children: [dot, const SizedBox(width: Space.md), Expanded(child: text), ?button]);
       }),
     );
   }

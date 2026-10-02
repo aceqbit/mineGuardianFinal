@@ -77,6 +77,7 @@ export async function assignRoute({ crisis, workerId, exitId, by }) {
     properties: { crisisId: String(crisis._id), workerId: String(workerId), workerName: worker.fullName, rank: 1, recommended: true, assigned: true, exitId, exitName: target.name, exitType: target.exitType, distanceM: best.distanceM, etaSec: best.etaSec, risk: best.risk, congestion: best.congestion, reasons: ['Assigned by the control room'], positionUnknown: !pos, computedAt: new Date().toISOString() },
     geometry: { type: 'LineString', coordinates: best.coords },
   };
-  emitTo([`user:${workerId}`], 'crisis:route_assigned', { crisisId: String(crisis._id), route: feature, assignedBy: by?.fullName ?? 'Control room' });
+  emitTo([`user:${workerId}`], 'crisis:routes', { crisisId: String(crisis._id), geojson: { type: 'FeatureCollection', features: [feature] } });
+  emitTo([`user:${workerId}`], 'crisis:route_assigned', { crisisId: String(crisis._id), workerId: String(workerId), rank: 1, exitName: target.name, assignedBy: by?.fullName ?? 'Control room' });
   return { ok: true, route: feature };
 }
