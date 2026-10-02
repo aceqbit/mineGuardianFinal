@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 
 import '../contracts/enums.dart';
 import '../contracts/routes.dart';
+import '../contracts/socket_events.dart';
 import '../core/api/api_client.dart';
 import '../core/auth/session_bloc.dart';
 import '../core/socket/socket_service.dart';
@@ -233,6 +234,23 @@ class _SirenChip extends StatelessWidget {
 class BroadcastBanners extends StatelessWidget {
   const BroadcastBanners({super.key});
 
+  /// A short reply goes to the admin (and the sender) over the socket.
+  Future<void> _reply(BuildContext context, String broadcastId) async {
+    final socket = context.read<SocketService>();
+    final ctl = TextEditingController();
+    final text = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Reply'),
+        content: TextField(controller: ctl, autofocus: true, maxLength: 280, maxLines: 3, decoration: const InputDecoration(hintText: 'Your reply')),
+        actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')), FilledButton(onPressed: () => Navigator.pop(ctx, ctl.text.trim()), child: const Text('Send'))],
+      ),
+    );
+    ctl.dispose();
+    if (text == null || text.isEmpty) return;
+    await socket.emit(SocketEvents.broadcastReplySend, {'broadcastId': broadcastId, 'text': text});
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<BroadcastInboxBloc, BroadcastInboxState>(
@@ -252,6 +270,7 @@ class BroadcastBanners extends StatelessWidget {
                     const Icon(Icons.campaign, color: Colors.white),
                     const SizedBox(width: Space.sm),
                     Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('${m.priority.label.toUpperCase()} · ${m.senderName}', style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w700)), Text(m.text, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700))])),
+                    TextButton(onPressed: () => _reply(context, m.id), child: const Text('Reply', style: TextStyle(color: Colors.white))),
                     TextButton(onPressed: () => context.read<BroadcastInboxBloc>().add(InboxGotIt(m.id)), child: const Text('Got it', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800))),
                   ]),
                 ),

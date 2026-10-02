@@ -31,3 +31,7 @@
 | P2.10 | Crisis console, supervisor crisis view, post-crisis report, global overlays (flash/siren/banners) | PASS (110 Flutter tests, analyze clean); siren audio and vibration on a real device = MANUAL |
 | P2.11 | Broadcast: scoped send (supervisor = own zone), emit-first, EMERGENCY SMS to offline, acks, replies, sticky banners, composer UI | PASS (146 backend, 117 Flutter tests); real devices/Twilio = MANUAL |
 | P2.12 | Emergency contacts: dial-target blocklist guard (UNSAFE_DIAL_TARGET), call/SMS/notify-all, seed, UI with real-number warning | PASS (152 backend incl. blocklist tests, 121 Flutter tests) |
+| P2.13 | p2-smoke, adversarial set format, Phase 2 audit and payload docs | Script written and syntax-checked; running it is MANUAL (needs server + Firebase + Mongo) |
+| I.1 | Contract check (JS) + route check (Dart) | PASS offline part (29/29); live route probes MANUAL |
+| I.3 | Demo runbook | Written (docs/DEMO_RUNBOOK.md) |
+| I.4 | Final audit | Written (docs/FINAL_AUDIT.md) with the manual list |
