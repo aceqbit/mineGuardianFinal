@@ -13,6 +13,7 @@ import { SosEvent } from '../src/models/SosEvent.js';
 import { ComplianceReview } from '../src/models/ComplianceReview.js';
 import { AuditLog } from '../src/models/AuditLog.js';
 import { LOGIN_EMAIL_DOMAIN } from '../src/contracts/enums.js';
+import { seedContacts } from './contacts.js';
 
 const MINE = 'MG Demo Colliery';
 const SHIFT_WINDOWS = [
@@ -109,6 +110,7 @@ async function main() {
     table.push({ role: p.role, id: u.id, employeeId: p.employeeId, phone: maskPhone(e164), zone: p.zone || '-', password: p.password });
   }
   console.table(table);
+  console.log(`Emergency contacts: ${await seedContacts()} (dial target = verified team number, never a real emergency number)`);
   console.log(`Seed complete: ${ZONES.length} zones, layout v1, ${people.length} users`);
   await disconnectDb();
 }

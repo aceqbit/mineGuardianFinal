@@ -30,3 +30,4 @@
 | P2.9 | Rerouter: Tobler graph, hazard constraints/multipliers, A*, Yen, ranking, assignment, crisis routes API | PASS (139 backend tests: A* == Dijkstra on 50 pairs, blocked edge changes rank 1, CRITICAL hazard removes edges, 13-worker recompute ~10 ms) |
 | P2.10 | Crisis console, supervisor crisis view, post-crisis report, global overlays (flash/siren/banners) | PASS (110 Flutter tests, analyze clean); siren audio and vibration on a real device = MANUAL |
 | P2.11 | Broadcast: scoped send (supervisor = own zone), emit-first, EMERGENCY SMS to offline, acks, replies, sticky banners, composer UI | PASS (146 backend, 117 Flutter tests); real devices/Twilio = MANUAL |
+| P2.12 | Emergency contacts: dial-target blocklist guard (UNSAFE_DIAL_TARGET), call/SMS/notify-all, seed, UI with real-number warning | PASS (152 backend incl. blocklist tests, 121 Flutter tests) |
