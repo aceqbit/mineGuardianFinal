@@ -17,7 +17,7 @@
 | P1.9 | SOS + panic screen + offline evac map | PASS (backend 33, 6 evac-graph tests, 4 SOS screen tests incl. offline queue); real-phone SOS/SMS/offline MANUAL |
 | P1.10 | Supervisor Home live feed | PASS (backend 34, 6 feed-bloc tests incl. live merge/optimistic rollback) |
 | P1.11 | Admin Home | PASS (3-width render x crisis on/off); backend overview/supervisors added in P1.10 commit |
-| P1.12 | Simulators + p1-smoke + audit | PASS (35 backend tests incl. simulator route builder); p1-smoke needs live server + Firebase = MANUAL |
+| P1.12 | Simulators + p1-smoke + audit | PASS live 14/14 (real Mongo + Firebase Auth) |
 | P2.0 | Prep (eval photos + labels) | MANUAL: 30 eval photos + labels.json are yours to make |
 | P2.1 | AI analyser core | PASS (22 tests: guardrails, failure policy, mock, schemas); real-key checks MANUAL |
 | P2.2 | Tools, tool loop, fusion, eval | PASS (72 backend tests: fusion rules a-h, YOLO parse/ONNX decode, metrics); eval run + real keys MANUAL |
@@ -31,7 +31,7 @@
 | P2.10 | Crisis console, supervisor crisis view, post-crisis report, global overlays (flash/siren/banners) | PASS (110 Flutter tests, analyze clean); siren audio and vibration on a real device = MANUAL |
 | P2.11 | Broadcast: scoped send (supervisor = own zone), emit-first, EMERGENCY SMS to offline, acks, replies, sticky banners, composer UI | PASS (146 backend, 117 Flutter tests); real devices/Twilio = MANUAL |
 | P2.12 | Emergency contacts: dial-target blocklist guard (UNSAFE_DIAL_TARGET), call/SMS/notify-all, seed, UI with real-number warning | PASS (152 backend incl. blocklist tests, 121 Flutter tests) |
-| P2.13 | p2-smoke, adversarial set format, Phase 2 audit and payload docs | Script written and syntax-checked; running it is MANUAL (needs server + Firebase + Mongo) |
+| P2.13 | p2-smoke, adversarial set format, Phase 2 audit and payload docs | PASS live 13/13 (mock AI, local storage, dry-run Twilio) |
 | I.1 | Contract check (JS) + route check (Dart) | PASS offline part (29/29); live route probes MANUAL |
 | I.3 | Demo runbook | Written (docs/DEMO_RUNBOOK.md) |
 | I.4 | Final audit | Written (docs/FINAL_AUDIT.md) with the manual list |
