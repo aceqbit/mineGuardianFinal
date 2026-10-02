@@ -10,6 +10,7 @@ import { istDateString } from '../src/modules/checkins/integrity.js';
 import { recomputeWorker } from '../src/modules/scoring/scoring.service.js';
 import { previousMonth, publishMonth } from '../src/modules/rewards/rewards.service.js';
 import { SHIFT_HOURS } from '../src/contracts/enums.js';
+import { toPoint } from '../src/core/geo.js';
 
 const DAYS = 45;
 const DAY_MS = 86_400_000;
@@ -50,7 +51,7 @@ async function main() {
       const clientId = `demo-${m.employeeId}-${day}`;
       const ci = await CheckIn.findOneAndUpdate(
         { clientId },
-        { $setOnInsert: { workerId: m._id, zoneId: m.zoneId, shift: m.shift, clientId, storagePath: `demo/${clientId}.jpg`, source: 'camera', attempt: rand() < 0.85 ? 1 : 2, capturedAt, receivedAt: capturedAt, status: 'REVIEWED', createdAt: capturedAt } },
+        { $setOnInsert: { workerId: m._id, zoneId: m.zoneId, shift: m.shift, clientId, storagePath: `demo/${clientId}.jpg`, source: 'camera', location: toPoint(env.DEMO_ANCHOR_LAT, env.DEMO_ANCHOR_LNG), accuracyM: 8, attempt: rand() < 0.85 ? 1 : 2, capturedAt, receivedAt: capturedAt, status: 'REVIEWED', createdAt: capturedAt } },
         { upsert: true, new: true, setDefaultsOnInsert: true, timestamps: false },
       );
       const items = required.map((k) => ({ key: k, status: missing.includes(k) ? 'ABSENT' : 'PRESENT' }));
