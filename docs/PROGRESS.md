@@ -29,3 +29,4 @@
 | P2.8 | Crisis engine: blast-first activation, merge, positions, accounted, resolve + report, public tracking page | PASS (121 backend tests on pure rules); live blast/Twilio dry-run/Mongo = MANUAL (p2-smoke) |
 | P2.9 | Rerouter: Tobler graph, hazard constraints/multipliers, A*, Yen, ranking, assignment, crisis routes API | PASS (139 backend tests: A* == Dijkstra on 50 pairs, blocked edge changes rank 1, CRITICAL hazard removes edges, 13-worker recompute ~10 ms) |
 | P2.10 | Crisis console, supervisor crisis view, post-crisis report, global overlays (flash/siren/banners) | PASS (110 Flutter tests, analyze clean); siren audio and vibration on a real device = MANUAL |
+| P2.11 | Broadcast: scoped send (supervisor = own zone), emit-first, EMERGENCY SMS to offline, acks, replies, sticky banners, composer UI | PASS (146 backend, 117 Flutter tests); real devices/Twilio = MANUAL |

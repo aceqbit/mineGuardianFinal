@@ -10,6 +10,8 @@ import '../contracts/routes.dart';
 import '../core/api/api_client.dart';
 import '../core/auth/session_bloc.dart';
 import '../core/socket/socket_service.dart';
+import '../features/broadcast/bloc/broadcast_inbox_bloc.dart';
+import '../features/broadcast/data/broadcast_repository.dart';
 import '../features/crisis/bloc/crisis_bloc.dart';
 import '../features/crisis/data/crisis_repository.dart';
 import 'siren.dart';
@@ -19,11 +21,12 @@ import 'theme/tokens.dart';
 /// Wraps every page via a ShellRoute: crisis flash, siren, banners and navigation per role (CLAUDE.md §13).
 /// admin: 3 red pulses + siren + open the crisis console. supervisor: banner + 3 s siren. miner: EVACUATE banner + vibration + evacuation view.
 class GlobalOverlays extends StatefulWidget {
-  const GlobalOverlays({super.key, required this.child, this.crisisBloc, this.siren});
+  const GlobalOverlays({super.key, required this.child, this.crisisBloc, this.inboxBloc, this.siren});
   final Widget child;
 
   /// Tests inject these; the app builds its own.
   final CrisisBloc? crisisBloc;
+  final BroadcastInboxBloc? inboxBloc;
   final SirenController? siren;
 
   @override
@@ -32,6 +35,9 @@ class GlobalOverlays extends StatefulWidget {
 
 class _GlobalOverlaysState extends State<GlobalOverlays> with SingleTickerProviderStateMixin {
   CrisisBloc? _bloc;
+  BroadcastInboxBloc? _inbox;
+  bool _ownsInbox = false;
+  Timer? _toastTimer;
   SirenController? _siren;
   bool _ownsBloc = false, _ownsSiren = false;
   late final AnimationController _flash = AnimationController(vsync: this, duration: const Duration(milliseconds: 300));
@@ -50,6 +56,10 @@ class _GlobalOverlaysState extends State<GlobalOverlays> with SingleTickerProvid
       _bloc = widget.crisisBloc ??
           CrisisBloc(repo: CrisisRepository(api: context.read<ApiClient>()), socket: context.read<SocketService>(), isStaff: () => _role == Role.admin || _role == Role.supervisor);
     }
+    if (_inbox == null) {
+      _ownsInbox = widget.inboxBloc == null;
+      _inbox = widget.inboxBloc ?? BroadcastInboxBloc(repo: BroadcastRepository(api: context.read<ApiClient>()), socket: context.read<SocketService>());
+    }
     if (_siren == null) {
       _ownsSiren = widget.siren == null;
       _siren = widget.siren ?? SirenController();
@@ -59,7 +69,9 @@ class _GlobalOverlaysState extends State<GlobalOverlays> with SingleTickerProvid
   @override
   void dispose() {
     _clearTimer?.cancel();
+    _toastTimer?.cancel();
     _flash.dispose();
+    if (_ownsInbox) _inbox?.close();
     if (_ownsBloc) _bloc?.close();
     if (_ownsSiren) _siren?.dispose();
     super.dispose();
@@ -106,12 +118,13 @@ class _GlobalOverlaysState extends State<GlobalOverlays> with SingleTickerProvid
   Widget build(BuildContext context) {
     final bloc = _bloc!;
     final session = context.watch<SessionBloc>().state;
-    return BlocProvider<CrisisBloc>.value(
-      value: bloc,
+    return MultiBlocProvider(
+      providers: [BlocProvider<CrisisBloc>.value(value: bloc), BlocProvider<BroadcastInboxBloc>.value(value: _inbox!)],
       child: BlocListener<SessionBloc, SessionState>(
         listener: (context, s) {
           if (s is SessionAuthenticated) {
             bloc.add(const CrisisStarted());
+            _inbox!.add(const InboxStarted());
           } else {
             bloc.add(const CrisisCleared());
             unawaited(_siren!.stop());
@@ -120,12 +133,21 @@ class _GlobalOverlaysState extends State<GlobalOverlays> with SingleTickerProvid
         child: MultiBlocListener(
           listeners: [
             BlocListener<CrisisBloc, CrisisState>(listenWhen: (a, b) => a.activationSeq != b.activationSeq, listener: (context, s) => _onActivated()),
+            BlocListener<BroadcastInboxBloc, BroadcastInboxState>(
+              listenWhen: (a, b) => b.toast != null && a.toast?.id != b.toast?.id,
+              listener: (context, s) {
+                _toastTimer?.cancel();
+                _toastTimer = Timer(const Duration(seconds: 4), () {
+                  if (mounted) _inbox!.add(const InboxToastDismissed());
+                });
+              },
+            ),
             BlocListener<CrisisBloc, CrisisState>(listenWhen: (a, b) => a.phase != CrisisPhase.resolved && b.phase == CrisisPhase.resolved, listener: (context, s) => _onResolved()),
           ],
           child: Stack(children: [
             Positioned.fill(child: widget.child),
             if (session is SessionAuthenticated) ...[
-              Positioned(top: 0, left: 0, right: 0, child: SafeArea(bottom: false, child: _CrisisBanner(role: session.user.role, onGo: _go))),
+              Positioned(top: 0, left: 0, right: 0, child: SafeArea(bottom: false, child: Column(mainAxisSize: MainAxisSize.min, children: [_CrisisBanner(role: session.user.role, onGo: _go), const BroadcastBanners()]))),
               Positioned.fill(child: IgnorePointer(child: AnimatedBuilder(animation: _flash, builder: (_, _) => ColoredBox(color: MgColors.of(context).crisis.withValues(alpha: 0.45 * _flash.value))))),
               Positioned(right: Space.md, bottom: Space.x4 + Space.lg, child: _SirenChip(siren: _siren!)),
             ],
@@ -202,6 +224,49 @@ class _SirenChip extends StatelessWidget {
             ),
           ),
         );
+      },
+    );
+  }
+}
+
+/// Sticky banners for URGENT and EMERGENCY broadcasts (until "Got it"); INFO shows as a short toast.
+class BroadcastBanners extends StatelessWidget {
+  const BroadcastBanners({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<BroadcastInboxBloc, BroadcastInboxState>(
+      builder: (context, s) {
+        final c = MgColors.of(context);
+        return Column(mainAxisSize: MainAxisSize.min, children: [
+          for (final m in s.sticky)
+            Semantics(
+              liveRegion: true,
+              label: '${m.priority.label} message from ${m.senderName}: ${m.text}',
+              child: Material(
+                key: ValueKey('bc-${m.id}'),
+                color: m.priority == BroadcastPriority.emergency ? c.crisis : c.warning,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: Space.lg, vertical: Space.sm),
+                  child: Row(children: [
+                    const Icon(Icons.campaign, color: Colors.white),
+                    const SizedBox(width: Space.sm),
+                    Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('${m.priority.label.toUpperCase()} · ${m.senderName}', style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w700)), Text(m.text, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700))])),
+                    TextButton(onPressed: () => context.read<BroadcastInboxBloc>().add(InboxGotIt(m.id)), child: const Text('Got it', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800))),
+                  ]),
+                ),
+              ),
+            ),
+          if (s.toast != null)
+            Material(
+              key: const ValueKey('bc-toast'),
+              color: c.ink800,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: Space.lg, vertical: Space.sm),
+                child: Row(children: [const Icon(Icons.info_outline, color: Colors.white, size: 18), const SizedBox(width: Space.sm), Expanded(child: Text('${s.toast!.senderName}: ${s.toast!.text}', style: const TextStyle(color: Colors.white)))]),
+              ),
+            ),
+        ]);
       },
     );
   }
